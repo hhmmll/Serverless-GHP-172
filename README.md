@@ -11,8 +11,8 @@ Using Flask create a quiz manager application. You are to create APIs that will 
  * Multiple choices (Maximum 4 and minimum 2)
  * One correct answer
 * (PLUS) Can browse through quiz items with pagination.
- * At max 20 items per page
- * API response should include:
+ * (PLUS)At max 20 items per page
+ * (PLUS)API response should include:
      *  Quiz questions
      *  Quiz answer choices
      *  Quiz correct answers
