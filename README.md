@@ -19,7 +19,7 @@ Using Flask create a quiz manager application. You are to create APIs that will 
 
 
 # Non-Functional Requirements
-* Project must be committed in the repo under folder web-development-backend/flask-quiz-app__
+* Candidate need to fork a repo to keep the changes
 * Use Flask-RESTX to create views
 * Use Flask Accepts and Flask Marshmallow for request validation and response marshalling
 * Use Flask-SQLAlchemy to make DB queries with ORM and form DB Schema
