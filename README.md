@@ -18,7 +18,7 @@ Using Flask create a quiz manager application. You are to create APIs that will 
 * Can create, update, delete quiz items 1 at a time
 
 
-# Non-Functional Requirements
+# Tooltiips
 * Candidate need to fork a repo to keep the changes
 * Use Flask-RESTX to create views
 * Use Flask Accepts and Flask Marshmallow for request validation and response marshalling
