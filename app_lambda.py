@@ -1,0 +1,179 @@
+from flask import Flask
+import json
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql import JSON
+from datetime import datetime
+
+app = Flask(__name__)
+db = SQLAlchemy()
+
+POSTGRES = {
+    'user': '',
+    'password': '',
+    'db': 'postgres',
+    'host': 'database-2.c9puqxutsvit.us-east-1.rds.amazonaws.com',
+    'port': '5432',
+}
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
+%(password)s@%(host)s:%(port)s/%(db)s' % POSTGRES
+db.init_app(app)
+
+class Questions(db.Model):
+    __tablename__ = 'questions'
+    id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+    description = db.Column(db.String(255), nullable=False)
+    choices = db.Column(JSON, nullable=False)
+    answer = db.Column(db.String(10), nullable=False)
+    insert_time = db.Column(db.DateTime, default=datetime.now)
+    update_time = db.Column(db.DateTime, onupdate=datetime.now, default=datetime.now)
+    def __init__(self, description, choices, answer):
+        # self.id = id
+        self.description = description
+        self.choices = choices
+        self.answer = answer
+        # self.insert_time = insert_time
+        # self.update_time = update_time
+    def as_dict(self):
+       return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+@app.route("/demo/questions", methods=["GET", "POST", "PUT", "DELETE"])
+def lambda_handler(event, context):
+    with app.app_context():
+        db.create_all()
+        contentType = event.get("headers")["Content-Type"]
+        myBody = json.loads(event.get("body"))
+        print("myBody:", myBody)
+        
+        if (contentType == "application/json"):
+            if (event["httpMethod"] == "GET"):
+                try:
+                    currentPage = myBody["page"]
+                    perPage = myBody["perPageLength"]
+                    handledResult = []
+                    if (perPage>20):
+                        perPage = 20
+                    elif(currentPage<0):
+                        return {
+                            "statusCode": 400,
+                            "body": json.dumps({
+                                "result": "some error happen"
+                            })
+                        }
+                    elif(perPage<0):
+                        return {
+                            "statusCode": 400,
+                            "body": json.dumps({
+                                "result": "some error happen"
+                            })
+                        }
+                    queryResults = Questions.query.order_by(Questions.id.asc()).paginate(page=currentPage, per_page=perPage)
+                    for question in queryResults:
+                        handledResult.append({
+                            "id": question.__dict__["id"],
+                            "description": question.__dict__["description"],
+                            "choices": question.__dict__["choices"],
+                            "answer": question.__dict__["answer"]
+                        })
+                    return {
+                        "statusCode": 200,
+                        "body": json.dumps({
+                            "result": handledResult
+                        })
+                    }
+                except:
+                    return {
+                        "statusCode": 400,
+                        "body": json.dumps({
+                            "result": "some error happen"
+                        })
+                    }
+            elif (event["httpMethod"] == "POST"):
+                try:
+                    questionList = []
+                    for question in myBody["data"]:
+                        choicesLength = len(question["choices"].keys())
+                        if (choicesLength<1  or choicesLength>4): 
+                            return {
+                                "statusCode": 400,
+                                "body": json.dumps({
+                                    "result": "some error happen"
+                                })
+                            }
+                        questionList.append(Questions(question['description'], question['choices'], question['answer']))
+                    db.session.add_all(questionList)
+                    db.session.commit()
+                    return {
+                        "statusCode": 200,
+                        "body": json.dumps({
+                            "result": "ok"
+                        })
+                    }
+                except:
+                    return {
+                        "statusCode": 400,
+                        "body": json.dumps({
+                            "result": "some error happen"
+                        })
+                    }
+                
+            elif (event["httpMethod"] == "DELETE"):
+                listDeleted = []
+                try:
+                    for id in myBody["deleteId"]:
+                        queryResult = Questions.query.filter_by(id=id).first()
+                        db.session.delete(queryResult)
+                        db.session.commit()
+                        listDeleted.append(id)
+                    return {
+                        "statusCode": 400,
+                        "body": json.dumps({
+                            "result": "ok",
+                            "listDeleted": listDeleted
+                        })
+                    }
+                except:
+                    return {
+                        "statusCode": 400,
+                        "body": json.dumps({
+                            "result": "some error happen",
+                            "listDeleted": listDeleted
+                        })
+                    }
+            elif (event["httpMethod"] == "PUT"):
+                listUpdated = []
+                try:
+                    for question in myBody["data"]:
+                        myId = question["id"]
+                        query = Questions.query.filter_by(id=myId).first()
+                        for col in question:
+                            if (col == "id"):
+                                continue
+                            setattr(query, col, question[col])
+                            db.session.commit()
+                        listUpdated.append(myId)
+                    return {
+                        "statusCode": 200,
+                        "body": json.dumps({
+                            "result": "ok",
+                            "listUpdated": listUpdated
+                        })
+                    }
+                except:
+                    return {
+                        "statusCode": 400,
+                        "body": json.dumps({
+                            "result": "some error happen",
+                            "listUpdated": listUpdated
+                        })
+                    }
+        else:
+            return {
+                "statusCode": 400,
+                "body": json.dumps({
+                    "message": "Content-Type support application/json only"
+                })
+            }
+
+if __name__ == '__main__':
+    app.run(debug=True)
