@@ -8,8 +8,8 @@ app = Flask(__name__)
 db = SQLAlchemy()
 
 POSTGRES = {
-    'user': 'postgres',
-    'password': '11881199',
+    'user': '',
+    'password': '',
     'db': 'postgres',
     'host': 'database-2.c9puqxutsvit.us-east-1.rds.amazonaws.com',
     'port': '5432',
